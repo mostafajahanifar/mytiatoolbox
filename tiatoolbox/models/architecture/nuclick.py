@@ -323,11 +323,33 @@ class NuClick_NN(ModelABC):
         
         return conv10
 
+
+    #Returns masks
+    #preds(no.patchs, 128, 128), nucPoints(no.patchs, 1, 128, 128) 
+    @staticmethod
+    def postproc(preds, thresh=0.33, minSize=10, minHole=30, doReconstruction=False, nucPoints=None):
+        masks = preds > thresh
+        masks = remove_small_objects(masks, min_size=minSize)
+        masks = remove_small_holes(masks, area_threshold=minHole)
+        if doReconstruction:
+            for i in range(len(masks)):
+                thisMask = masks[i]
+                thisMarker = nucPoints[i, 0, :, :] > 0
+                
+                try:
+                    thisMask = reconstruction(thisMarker, thisMask, footprint=disk(1))
+                    masks[i] = np.array([thisMask])
+                except:
+                    warnings.warn('Nuclei reconstruction error #' + str(i))
+        return masks    #masks(no.patchs, 128, 128)
+
+
     @staticmethod
     def infer_batch(model, batch_data, on_gpu):
         model.eval()
         device = misc.select_device(on_gpu)
 
+        #Assume batch_data is NCHW
         imgs_points = batch_data
         imgs_points_device = imgs_points.to(device).type(torch.float32)
 
