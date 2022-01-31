@@ -72,7 +72,6 @@ class Multiscale_Conv_Block(nn.Module):
 
         super().__init__()
 
-        #Initialise conv blocks
         self.conv_block_1 = Conv_Bn_Relu(in_channels=in_channels, out_channels=out_channels, kernelSize=kernelSizes[0],
                 strds=strds, actv=actv, useBias=useBias, dilatationRate=(dilatationRates[0], dilatationRates[0]))
             
@@ -121,8 +120,7 @@ class Residual_Conv(nn.Module):
 
         if actv == 'relu':
             self.activation = nn.ReLU()
-        
-        if actv == 'sigmoid':
+        elif actv == 'sigmoid':
             self.activation = nn.Sigmoid()
 
 
@@ -249,51 +247,51 @@ class NuClick_NN(ModelABC):
 
     def forward(self, input):
 
-        conv1 = self.conv_block_1(input)    #conv1: 32 channels
-        pool1 = self.pool_block_1(conv1)     #poo1: 32 channels
+        conv1 = self.conv_block_1(input)    
+        pool1 = self.pool_block_1(conv1)     
 
-        conv2 = self.residual_block_1(pool1)    #conv2: 64 channels
-        pool2 = self.pool_block_2(conv2)    #pool2: 64 channels        
+        conv2 = self.residual_block_1(pool1) 
+        pool2 = self.pool_block_2(conv2)    
 
-        conv3 = self.residual_block_2(pool2)   #conv3: 128 channels
-        conv3 = self.multiscale_block_1(conv3)  #conv3: 128 channels
-        conv3 = self.residual_block_3(conv3)    #conv3: 128 channels    
-        pool3 = self.pool_block_3(conv3)    #pool3: 128 channels
+        conv3 = self.residual_block_2(pool2)
+        conv3 = self.multiscale_block_1(conv3)  
+        conv3 = self.residual_block_3(conv3)    
+        pool3 = self.pool_block_3(conv3)    
 
-        conv4 = self.residual_block_4(pool3)    #conv4: 256 channels
-        pool4 = self.pool_block_4(conv4)    #pool4: 512 channels
+        conv4 = self.residual_block_4(pool3)    
+        pool4 = self.pool_block_4(conv4)    
 
-        conv5 = self.residual_block_5(pool4)    #conv5: 512 channels
-        pool5 = self.pool_block_5(conv5)    #pool5: 512  channels
+        conv5 = self.residual_block_5(pool4) 
+        pool5 = self.pool_block_5(conv5)    
 
-        conv51 = self.residual_block_6(pool5) #conv51: 1024 channels
+        conv51 = self.residual_block_6(pool5) 
 
-        up61 = torch.cat([self.conv_transpose_1(conv51),conv5], dim=1)  #up61: 1024 channels
-        conv61 = self.residual_block_7(up61)    #conv61: 256 channels
+        up61 = torch.cat([self.conv_transpose_1(conv51),conv5], dim=1)  
+        conv61 = self.residual_block_7(up61)    
         
-        up6 = torch.cat([self.conv_transpose_2(conv61), conv4], dim=1)  #up6: 512 channels
-        conv6 = self.residual_block_8(up6) #conv6: 256 channels
-        conv6 = self.multiscale_block_2(conv6)  #conv6: 256 channels
-        conv6 = self.residual_block_9(conv6)    #conv6: 256 channels
+        up6 = torch.cat([self.conv_transpose_2(conv61), conv4], dim=1)  
+        conv6 = self.residual_block_8(up6) 
+        conv6 = self.multiscale_block_2(conv6)  
+        conv6 = self.residual_block_9(conv6)    
 
-        up7 = torch.cat([self.conv_transpose_3(conv6), conv3], dim=1)   #up7: 256 channels
-        conv7 = self.residual_block_10(up7)     #conv7: 128 channels
+        up7 = torch.cat([self.conv_transpose_3(conv6), conv3], dim=1)   
+        conv7 = self.residual_block_10(up7)     
 
-        up8 = torch.cat([self.conv_transpose_4(conv7), conv2], dim=1)   #up8: 128 channels
-        conv8 = self.residual_block_11(up8)     #conv8: 64 channels
-        conv8 = self.multiscale_block_3(conv8)  #conv8: 64 channels
-        conv8 = self.residual_block_12(conv8)   #conv8: 64 channels
+        up8 = torch.cat([self.conv_transpose_4(conv7), conv2], dim=1)   
+        conv8 = self.residual_block_11(up8)     
+        conv8 = self.multiscale_block_3(conv8)  
+        conv8 = self.residual_block_12(conv8)   
 
-        up9 = torch.cat([self.conv_transpose_5(conv8), conv1], dim=1)   #up9: 64 channels
-        conv9 = self.conv_block_2(up9)  #conv9: 32 channels
+        up9 = torch.cat([self.conv_transpose_5(conv8), conv1], dim=1)   
+        conv9 = self.conv_block_2(up9)  
 
-        conv10 = self.conv_block_3(conv9)   #conv10: out_channels
+        conv10 = self.conv_block_3(conv9)   
         
         return conv10
 
 
-    #Returns masks
-    #preds(no.patchs, 128, 128), nucPoints(no.patchs, 1, 128, 128) 
+
+    
     @staticmethod
     def postproc(preds, thresh=0.33, minSize=10, minHole=30, doReconstruction=False, nucPoints=None):
         masks = preds > thresh
@@ -309,7 +307,7 @@ class NuClick_NN(ModelABC):
                     masks[i] = np.array([thisMask])
                 except:
                     warnings.warn('Nuclei reconstruction error #' + str(i))
-        return masks    #masks(no.patchs, 128, 128)
+        return masks   
 
 
     @staticmethod
