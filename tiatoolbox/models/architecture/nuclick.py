@@ -67,21 +67,12 @@ class Multiscale_Conv_Block(nn.Module):
 
     def __init__(self, in_channels, kernelSizes, 
         dilatationRates, out_channels=32, strds=(1,1),
-        actv='relu', useBias=False, isDense=True
+        actv='relu', useBias=False
     ):
 
         super().__init__()
 
         #Initialise conv blocks
-        if isDense:
-            self.conv_block_0 = Conv_Bn_Relu(in_channels=in_channels, out_channels=4*out_channels, kernelSize=1, 
-                strds=strds, actv=actv, useBias=useBias)
-            self.conv_block_5 = Conv_Bn_Relu(in_channels=in_channels, out_channels=out_channels, kernelSize=3, 
-                strds=strds, actv=actv, useBias=useBias)
-        else:
-            self.conv_block_0 = None
-            self.conv_block_5 = None
-
         self.conv_block_1 = Conv_Bn_Relu(in_channels=in_channels, out_channels=out_channels, kernelSize=kernelSizes[0],
                 strds=strds, actv=actv, useBias=useBias, dilatationRate=(dilatationRates[0], dilatationRates[0]))
             
@@ -96,25 +87,15 @@ class Multiscale_Conv_Block(nn.Module):
 
 
     def forward(self, input_map):
-        #If isDense == True
-        if self.conv_block_0 is not None:
-            conv0 = self.conv_block_0(input_map)
-        else:
-            conv0 = input_map
+
+        conv0 = input_map
 
         conv1 = self.conv_block_1(conv0)
         conv2 = self.conv_block_2(conv0)
         conv3 = self.conv_block_3(conv0)
         conv4 = self.conv_block_4(conv0)
 
-        #(Not sure about bn_axis)
         output_map = torch.cat([conv1, conv2, conv3, conv4], dim=bn_axis)
-
-        #If isDense == True
-        if self.conv_block_5 is not None:
-            output_map = self.conv_block_5(output_map)
-            #(Not sure about bn_axis)
-            output_map = torch.cat([input_map, output_map], dim=bn_axis)
 
         return output_map
 
@@ -227,15 +208,15 @@ class NuClick_NN(ModelABC):
 
         #-------------Multiscale_Conv_Block blocks------------
         self.multiscale_block_1 = Multiscale_Conv_Block(in_channels=128, out_channels=32,
-            kernelSizes=[3,3,5,5], dilatationRates=[1,3,3,6], isDense=False
+            kernelSizes=[3,3,5,5], dilatationRates=[1,3,3,6]
         )
 
         self.multiscale_block_2 = Multiscale_Conv_Block(in_channels=256, out_channels=64,
-            kernelSizes=[3,3,5,5], dilatationRates=[1,3,2,3], isDense=False
+            kernelSizes=[3,3,5,5], dilatationRates=[1,3,2,3]
         )
 
         self.multiscale_block_3 = Multiscale_Conv_Block(in_channels=64, out_channels=16,
-            kernelSizes=[3,3,5,7], dilatationRates=[1,3,2,6], isDense=False
+            kernelSizes=[3,3,5,7], dilatationRates=[1,3,2,6]
         )
             
         #-------------MaxPool2d blocks------------
