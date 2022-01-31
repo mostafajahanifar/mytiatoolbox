@@ -45,23 +45,17 @@ class Conv_Bn_Relu(nn.Module):
                 stride=strds, dilation=dilatationRate, bias=useBias, padding='same', padding_mode='zeros'
             )
 
-        if actv == 'selu':
-            #(Can't find 'lecun_normal' equivalent in PyTorch)
-            torch.nn.init.xavier_normal_(conv1.weight)
-        else:
-            torch.nn.init.xavier_uniform_(conv1.weight)
+        torch.nn.init.xavier_uniform_(conv1.weight)
 
         layers.append(conv1)
 
-        if actv != 'selu' and doBatchNorm:
+        if doBatchNorm:
             layers.append(nn.BatchNorm2d(num_features=out_channels,eps=1.001e-5))
 
         if actv == 'relu':
             layers.append(nn.ReLU())
         elif actv == 'sigmoid':
             layers.append(nn.Sigmoid())
-        elif actv == 'selu':
-            layers.append(nn.SELU())
 
         block = nn.Sequential(*layers)
         return block
@@ -135,27 +129,20 @@ class Residual_Conv(nn.Module):
     ):
         super().__init__()
 
-        if actv == 'selu':
-            self.conv_block_1 = Conv_Bn_Relu(in_channels, out_channels, kernelSize=kernelSize, strds=strds, 
-                actv='None', useBias=useBias, dilatationRate=dilatationRate, doBatchNorm=False
-            )
-            self.conv_block_2 = Conv_Bn_Relu(in_channels, out_channels, kernelSize=kernelSize, strds=strds, 
-                actv='None', useBias=useBias, dilatationRate=dilatationRate, doBatchNorm=False
-            )
-            self.activation = nn.SELU()
-        else:
-            self.conv_block_1 = Conv_Bn_Relu(in_channels, out_channels, kernelSize=kernelSize, strds=strds, 
-                actv='None', useBias=useBias, dilatationRate=dilatationRate, doBatchNorm=True
-            )
-            self.conv_block_2 = Conv_Bn_Relu(out_channels, out_channels, kernelSize=kernelSize, strds=strds, 
-                actv='None', useBias=useBias, dilatationRate=dilatationRate, doBatchNorm=True
-            )
 
-            if actv == 'relu':
-                self.activation = nn.ReLU()
-            
-            if actv == 'sigmoid':
-                self.activation = nn.Sigmoid()
+
+        self.conv_block_1 = Conv_Bn_Relu(in_channels, out_channels, kernelSize=kernelSize, strds=strds, 
+            actv='None', useBias=useBias, dilatationRate=dilatationRate, doBatchNorm=True
+        )
+        self.conv_block_2 = Conv_Bn_Relu(out_channels, out_channels, kernelSize=kernelSize, strds=strds, 
+            actv='None', useBias=useBias, dilatationRate=dilatationRate, doBatchNorm=True
+        )
+
+        if actv == 'relu':
+            self.activation = nn.ReLU()
+        
+        if actv == 'sigmoid':
+            self.activation = nn.Sigmoid()
 
 
     def forward(self, input):
