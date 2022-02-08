@@ -16,7 +16,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             img_path (:obj:`str` or :obj:`pathlib.Path`): Path to a standard image,
                 a whole-slide image or a large tile to read.
             points (ndarray, pd.DataFrame, str, pathlib.Path): Points ('clicks') for the image. 
-            labels: A label. Default is `None`.
+            label: A label. Default is `None`.
             mode (str): Type of the image to process. Choose from either `patch`, `tile`
                 or `wsi`.
 
