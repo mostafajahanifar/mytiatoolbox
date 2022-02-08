@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import torch
 
 from tiatoolbox.models.dataset import abc
 from tiatoolbox.utils.misc import read_locations
@@ -148,6 +149,65 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
 
     def __len__(self):
         return self.locations.shape[0]       
+
+
+
+# df = read_locations("/Users/jlv/Desktop/points/points1.csv")
+# cx = df["x"].to_numpy()
+# cy = df["y"].to_numpy()
+# print(cx, cy)
+# print(df["x"][0])
+# location = (0,0)
+# size = (10,10)
+# tl = np.array(location)
+# br = location + np.array(size)
+# bounds = np.concatenate([tl, br])
+# print(bounds)
+
+dataset = InteractiveSegmentorDataset(img_path="/Users/jlv/Desktop/images/image1.png", points="/Users/jlv/Desktop/points/points1.csv",
+    mode="patch")
+# bb = dataset.get_boundingBox(1)
+# exclusionMap = dataset.get_exclusionMap(1, bb)
+# print(exclusionMap.shape)
+# exclusionMap = np.squeeze(exclusionMap)
+# print(exclusionMap.shape)
+
+# plt.imshow(exclusionMap, cmap='Greys_r', interpolation='nearest')
+# plt.scatter([64], [64], c='r')
+# plt.show()
+# box = dataset.get_boundingBox(1)
+# print(box)
+# data = dataset.__getitem__(4)
+
+# input = data["input"]
+# image = input[0:3, :, :]
+# image = np.moveaxis(image, 0, 2)
+
+# inclusionMap = input[3, :, :]
+# inclusionMap = np.squeeze(inclusionMap)
+# click = np.argwhere(inclusionMap>=1)
+
+# exclusionMap = input[4, :, :]
+# exclusionMap = np.squeeze(exclusionMap)
+# others = np.argwhere(exclusionMap>=1)
+
+# import matplotlib.pyplot as plt
+# plt.figure(), plt.imshow(image)
+# plt.scatter([click[0][0]],[click[0][1]],c='r')
+# plt.scatter(others[:, 0],others[:, 1],c='g')
+# plt.show()
+
+
+dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=8,
+            drop_last=False,
+            shuffle=False,
+        )
+
+for _, batch_data in enumerate(dataloader):
+    print("load:")
+    print(batch_data["input"].shape)
 
 
 
