@@ -67,7 +67,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         boundingBox = self.get_boundingBox(idx)
 
         # we know nucPoint is at the centre of the patch:
-        nucPoint = np.ndarray((1, self.patch_size[1], self.patch_size[1]), dtype=np.uint8)
+        nucPoint = np.zeros((1, self.patch_size[1], self.patch_size[1]), dtype=np.uint8)
         nucPoint[0,int((self.patch_size[1]-1)/2),int((self.patch_size[1]-1)/2)] = 1
 
         exclusionMap = self.get_exclusionMap(idx, boundingBox)
