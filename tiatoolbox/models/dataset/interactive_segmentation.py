@@ -16,16 +16,12 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             img_path (:obj:`str` or :obj:`pathlib.Path`): Path to a standard image,
                 a whole-slide image or a large tile to read.
             points (ndarray, pd.DataFrame, str, pathlib.Path): Points ('clicks') for the image. 
-            labels: List of label for sample at the same index in `inputs`.
-                Default is `None`.
+            labels: A label. Default is `None`.
             mode (str): Type of the image to process. Choose from either `patch`, `tile`
                 or `wsi`.
 
         Examples:
-            >>> # an user defined preproc func and expected behavior
-            >>> preproc_func = lambda img: img/2  # reduce intensity by half
-            >>> transformed_img = preproc_func(img)
-            >>> # create a dataset to get patches preprocessed by the above function
+            >>> # create a dataset to extract small patches around each point on a patch image
             >>> ds = InteractiveSegmentorDataset(
             ...     img_path = 'example_image.png',
             ...     points = 'example_points.csv',
