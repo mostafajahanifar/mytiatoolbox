@@ -110,7 +110,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         return  bounds
 
     
-    def get_exclusionMap(self, idx, boundingBox = None):
+    def get_exclusionMap(self, idx, boundingBox):
         """This function returns an exclusion map for click at the given index.
 
         Args:
