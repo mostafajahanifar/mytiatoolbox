@@ -146,5 +146,8 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
 
         return exclusionMap
 
+    def __len__(self):
+        return self.locations.shape[0]       
+
 
 
