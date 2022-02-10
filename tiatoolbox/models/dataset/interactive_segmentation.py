@@ -8,9 +8,10 @@ from tiatoolbox.tools.patchextraction import get_patch_extractor
 
 class InteractiveSegmentorDataset(abc.PatchDatasetABC):
 
-    def __init__(self, img_path, points, mode, label=None, IOConfig=None):
+    def __init__(self, img_path, points, mode, resolution = 0, units = "level", patch_size = (128,128), label=None):
         """Creates an interactive segmentation dataset, which inherits from the
             torch.utils.data.Dataset class.
+            This dataset extract a small patch around each point from the input image.
 
         Args:
             img_path (:obj:`str` or :obj:`pathlib.Path`): Path to a standard image,
@@ -19,6 +20,20 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             label: A label. Default is `None`.
             mode (str): Type of the image to process. Choose from either `patch`, `tile`
                 or `wsi`.
+            resolution (int or float or tuple of float): resolution at
+                which to read the image, default = 0. Either a single
+                number or a sequence of two numbers for x and y are
+                valid. This value is in terms of the corresponding
+                units. For example: resolution=0.5 and units="mpp" will
+                read the slide at 0.5 microns per-pixel, and
+                resolution=3, units="level" will read at level at
+                pyramid level / resolution layer 3.
+            units (str): the units of resolution, default = "level".
+                Supported units are: microns per pixel (mpp), objective
+                power (power), pyramid / resolution level (level),
+                Only pyramid / resolution levels (level) embedded in
+                the whole slide image are supported.
+            patch_size: Size of the patch to extract, default = (128, 128)
 
         Examples:
             >>> # create a dataset to extract small patches around each point on a patch image
@@ -41,21 +56,16 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         self.img_path = img_path
         self.label = label
         self.mode = mode
-
-
-        # TODO: Change to use IOConfig
-        self.patch_size = (128,128)     # bounding box size
-        self.resolution = 0
-        self.units = "level"
+        self.patch_size = patch_size    
+        self.resolution = resolution    
+        self.units = units             
 
         # Read the points('clicks') into a panda df
         self.locations = read_locations(points)
 
-
         self.patch_extractor = get_patch_extractor("point",  
             input_img = self.img_path, locations_list = points, patch_size=self.patch_size,
             resolution = self.resolution, units = self.units)
-
 
     def __getitem__(self, idx):
         patch = self.patch_extractor.__getitem__(idx)
@@ -104,7 +114,6 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         bounds = np.concatenate([tl, br])
 
         return  bounds
-
     
     def get_exclusionMap(self, idx, boundingBox):
         """This function returns an exclusion map for click at the given index.
@@ -130,15 +139,12 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         xEnd = boundingBox[2]
         yEnd = boundingBox[3]
 
-        
-
         for i in range(x_locations.shape[0]):
             x = x_locations[i]
             y = y_locations[i]
 
             if (x >= xStart and x <= xEnd and y >= yStart and y <= yEnd):
                 exclusionMap[0, x - xStart, y - yStart] = 1
-
 
         return exclusionMap
 
