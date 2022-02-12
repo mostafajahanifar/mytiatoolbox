@@ -17,7 +17,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             img_path (:obj:`str` or :obj:`pathlib.Path`): Path to a standard image,
                 a whole-slide image or a large tile to read.
             points (ndarray, pd.DataFrame, str, pathlib.Path): Points ('clicks') for the image. 
-            label: A label. Default is `None`.
+            label: Label of the image, optional. Default is `None`.
             mode (str): Type of the image to process. Choose from either `patch`, `tile`
                 or `wsi`.
             resolution (int or float or tuple of float): resolution at
@@ -44,8 +44,6 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             ... )
 
         """
-        # Not using IOConfig at the moment
-
         super().__init__()
 
         if not os.path.isfile(img_path):
@@ -60,7 +58,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         self.resolution = resolution    
         self.units = units             
 
-        # Read the points('clicks') into a panda df
+        # Read the points('clicks') into a panda df 
         self.locations = read_locations(points)
 
         self.patch_extractor = get_patch_extractor("point",  
@@ -71,21 +69,22 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         patch = self.patch_extractor.__getitem__(idx)
 
         boundingBox = self.get_boundingBox(idx)
+        bounding_box = self.get_bounding_box(idx)
 
-        # we know nucPoint is at the centre of the patch:
-        nucPoint = np.zeros((1, self.patch_size[1], self.patch_size[1]), dtype=np.uint8)
-        nucPoint[0,int((self.patch_size[1]-1)/2),int((self.patch_size[1]-1)/2)] = 1
+        # we know the click is at the centre of the patch:
+        nuc_point = np.zeros((1, self.patch_size[0], self.patch_size[1]), dtype=np.uint8)
+        nuc_point[0,int((self.patch_size[0]-1)/2),int((self.patch_size[1]-1)/2)] = 1
 
-        exclusionMap = self.get_exclusionMap(idx, boundingBox)
+        exclusion_map = self.get_exclusion_map(idx, bounding_box)
 
         patch = np.moveaxis(patch, 2, 0)
         patch = patch / 255
 
-        input = np.concatenate((patch, nucPoint, exclusionMap), axis=0, dtype=np.float32)   # shape=(c=5,h,w)
+        input = np.concatenate((patch, nuc_point, exclusion_map), axis=0, dtype=np.float32)   # shape=(c=5,h,w)
  
         data = {
             "input": input,
-            "boundingBox": boundingBox,
+            "bounding_box": bounding_box,
             "click": (self.locations["x"][idx], self.locations["y"][idx])
         }
         if self.label is not None:
@@ -93,17 +92,14 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         
         return data
 
-
-    def get_boundingBox(self, idx):
+    def get_bounding_box(self, idx):
         """This function returns a bounding box of size (patch_size x patch_size) that has the click as its centre.
             The bounding box is the same box that is used in patch extraction.
 
         Args:
             idx (int): The index of the point ("Click") to get a bounding box for.
         Returns:
-            bounds: a list of coordinates in `[start_x, start_y, end_x, end_y]`
-            format to be used for patch extraction.
-
+            bounds: a list of coordinates in `[start_x, start_y, end_x, end_y]`.
         """
 
         #Coordinates of the top left corner of each patch:
@@ -114,8 +110,8 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         bounds = np.concatenate([tl, br])
 
         return  bounds
-    
-    def get_exclusionMap(self, idx, boundingBox):
+
+    def get_exclusion_map(self, idx, bounding_box):
         """This function returns an exclusion map for click at the given index.
 
         Args:
@@ -124,29 +120,19 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
                 This is the bounding box for the click at the given index.
         Returns:
             exclusionMap (ndarray)
-
         """
+        other_points = self.locations.drop(idx, axis = 0)
+        x_locations = other_points["x"].to_numpy()
+        y_locations = other_points["y"].to_numpy()
 
-        # Exclude the current click from list of clicks:
-        otherPoints = self.locations.drop(idx, axis = 0)
-        x_locations = otherPoints["x"].to_numpy()
-        y_locations = otherPoints["y"].to_numpy()
-      
-        exclusionMap = np.zeros((1, self.patch_size[1], self.patch_size[1]), dtype=np.uint8)
-        
-        xStart = boundingBox[0]
-        yStart = boundingBox[1]
-        xEnd = boundingBox[2]
-        yEnd = boundingBox[3]
+        xy_locations = np.stack((x_locations, y_locations), axis=1)
+        sel = xy_locations[np.all((xy_locations>bounding_box[:2]) & (xy_locations<bounding_box[2:]), axis=1)]
 
-        for i in range(x_locations.shape[0]):
-            x = x_locations[i]
-            y = y_locations[i]
+        exclusion_map = np.zeros((1, self.patch_size[0], self.patch_size[1]), dtype=np.uint8)
+        exclusion_map[0, sel[:, 1]-bounding_box[1], sel[:, 0]-bounding_box[0]] = 1
 
-            if (x >= xStart and x <= xEnd and y >= yStart and y <= yEnd):
-                exclusionMap[0, x - xStart, y - yStart] = 1
+        return exclusion_map
 
-        return exclusionMap
 
     def __len__(self):
         return self.locations.shape[0]       
