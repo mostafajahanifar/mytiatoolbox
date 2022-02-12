@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import time
+
 
 from tiatoolbox.models.dataset import abc
 from tiatoolbox.utils.misc import read_locations
@@ -65,10 +67,19 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             input_img = self.img_path, locations_list = points, patch_size=self.patch_size,
             resolution = self.resolution, units = self.units)
 
+        # self.bounding_boxes = []
+        # for idx in range(self.locations.shape[0]):
+        #     location = (self.patch_extractor.locations_df["x"][idx], self.patch_extractor.locations_df["y"][idx])
+        #     tl = np.array(location)
+        #     br = location + np.array(self.patch_size)
+        #     bounds = np.concatenate([tl, br])
+        #     self.bounding_boxes.append(bounds)
+
     def __getitem__(self, idx):
         patch = self.patch_extractor.__getitem__(idx)
 
         boundingBox = self.get_boundingBox(idx)
+        # bounding_box = self.bounding_boxes[idx]
         bounding_box = self.get_bounding_box(idx)
 
         # we know the click is at the centre of the patch:
@@ -139,4 +150,33 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
 
 
 
+start = time.time()
+dataset = InteractiveSegmentorDataset(img_path="/Users/jlv/Desktop/images/image1.png",
+                                    points="/Users/jlv/Desktop/points/points1.csv", mode="patch")
+     
 
+item = dataset.__getitem__(0)
+end = time.time()
+print("time: ", end-start)
+input = item["input"]
+
+
+patch = input[0:3, :, :]
+patch = np.moveaxis(patch, 0, 2)
+
+exclusion_map = input[4, :, :]
+
+
+# bb = dataset.get_bounding_box(0)
+# start_time = time.time()
+# exclusion_map = dataset.get_exclusionMap2(0, bb)
+# end_time = time.time()
+# print("time taken = ", end_time - start_time)
+
+others = np.argwhere(exclusion_map>=1)
+#print(others) 
+
+import matplotlib.pyplot as plt
+plt.figure(), plt.imshow(patch)
+plt.scatter(others[:, 1], others[:, 0])
+plt.show()
