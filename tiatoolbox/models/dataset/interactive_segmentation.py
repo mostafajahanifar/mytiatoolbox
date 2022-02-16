@@ -33,7 +33,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
                 power (power), pyramid / resolution level (level),
                 Only pyramid / resolution levels (level) embedded in
                 the whole slide image are supported.
-            patch_size: Size of the patch to extract, default = (128, 128)
+            patch_size: Size of the patch to extract (width, height), default = (128, 128)
 
         Examples:
             >>> # create a dataset to extract small patches around each point on a patch image
@@ -72,8 +72,8 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         bounding_box = self.get_bounding_box(idx)
 
         # we know the click is at the centre of the patch:
-        nuc_point = np.zeros((1, self.patch_size[0], self.patch_size[1]), dtype=np.uint8)
-        nuc_point[0,int((self.patch_size[0]-1)/2),int((self.patch_size[1]-1)/2)] = 1
+        nuc_point = np.zeros((1, self.patch_size[1], self.patch_size[0]), dtype=np.uint8)
+        nuc_point[0,int((self.patch_size[1]-1)/2),int((self.patch_size[0]-1)/2)] = 1
 
         exclusion_map = self.get_exclusion_map(idx, bounding_box)
 
@@ -93,7 +93,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         return data
 
     def get_bounding_box(self, idx):
-        """This function returns a bounding box of size (patch_size x patch_size) that has the click as its centre.
+        """This function returns a bounding box of size patch_size that has the click as its centre.
             The bounding box is the same box that is used in patch extraction.
 
         Args:
@@ -128,7 +128,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         xy_locations = np.stack((x_locations, y_locations), axis=1)
         sel = xy_locations[np.all((xy_locations>bounding_box[:2]) & (xy_locations<bounding_box[2:]), axis=1)]
 
-        exclusion_map = np.zeros((1, self.patch_size[0], self.patch_size[1]), dtype=np.uint8)
+        exclusion_map = np.zeros((1, self.patch_size[1], self.patch_size[0]), dtype=np.uint8)
         exclusion_map[0, sel[:, 1]-bounding_box[1], sel[:, 0]-bounding_box[0]] = 1
 
         return exclusion_map
