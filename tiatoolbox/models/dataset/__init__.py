@@ -26,4 +26,5 @@ from tiatoolbox.models.dataset.classification import (
     WSIPatchDataset,
     predefined_preproc_func,
 )
+from tiatoolbox.models.dataset.interactive_segmentation import InteractiveSegmentorDataset
 from tiatoolbox.models.dataset.info import DatasetInfoABC, KatherPatchDataset
