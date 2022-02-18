@@ -8,7 +8,7 @@ from tiatoolbox.tools.patchextraction import get_patch_extractor
 
 class InteractiveSegmentorDataset(abc.PatchDatasetABC):
 
-    def __init__(self, img_path, points, mode, resolution = 0, units = "level", patch_size = (128,128), label=None):
+    def __init__(self, img_path, points, resolution = 0, units = "level", patch_size = (128,128), label=None):
         """Creates an interactive segmentation dataset, which inherits from the
             torch.utils.data.Dataset class.
             This dataset extract a small patch around each point from the input image.
@@ -48,12 +48,9 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
 
         if not os.path.isfile(img_path):
             raise ValueError("`img_path` must be a valid file path.")
-        if mode not in ["patch", "wsi", "tile"]:
-            raise ValueError(f"`{mode}` is not supported.")
 
         self.img_path = img_path
         self.label = label
-        self.mode = mode
         self.patch_size = patch_size    
         self.resolution = resolution    
         self.units = units             
