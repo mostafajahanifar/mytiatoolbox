@@ -1,6 +1,8 @@
+import joblib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import cv2
 
 from tiatoolbox.models.abc import ModelABC
 from tiatoolbox.utils import misc
@@ -395,6 +397,71 @@ class NuClick(ModelABC):
         return conv10
 
 
+    @staticmethod
+    def generate_inst_dict(pred_mask, bounding_boxes):
+        """To collect instance information and store it within a dictionary.
+
+        Args:
+            pred_mask: A list of (binary) prediction masks, shape(no.patch, h, w)
+            bounding_boxes: ndarray, A list of bounding boxes. 
+                bounding box: `[start_x, start_y, end_x, end_y]`.
+
+        Returns:
+            inst_info_dict (dict): A dictionary containing a mapping of each instance
+                    within `pred_mask` instance information. It has following form
+
+                    inst_info = {
+                            box: number[],
+                            centroids: number[],
+                            contour: number[][],
+                            type: number,
+                            prob: number,
+                    }
+                    inst_info_dict = {[inst_uid: number] : inst_info}
+
+                    and `inst_uid` is an integer corresponds to the instance
+                    having the same pixel value within `pred_inst`.
+
+        """
+        inst_info_dict = {}
+        for i in range(len(pred_mask)):
+            patch = pred_mask[i]
+            patch = patch.astype(np.uint8)
+            inst_moment = cv2.moments(patch)
+            inst_contour = cv2.findContours(
+                patch, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+            )
+            # * opencv protocol format may break
+            inst_contour = inst_contour[0][0].astype(np.int32)
+            inst_contour = np.squeeze(inst_contour)
+
+            # < 3 points does not make a contour, so skip, likely artifact too
+            # as the contours obtained via approximation => too small
+            if inst_contour.shape[0] < 3:  # pragma: no cover
+                continue
+            # ! check for trickery shape
+            if len(inst_contour.shape) != 2:  # pragma: no cover
+                continue
+
+            inst_centroid = [
+                (inst_moment["m10"] / inst_moment["m00"]),
+                (inst_moment["m01"] / inst_moment["m00"]),
+            ]
+            inst_centroid = np.array(inst_centroid)
+            inst_box = bounding_boxes[i]
+            inst_box_tl = inst_box[:2]
+            inst_contour += inst_box_tl[None]
+            inst_centroid += inst_box_tl  # X
+            inst_info_dict[i+1] = {  # inst_id should start at 1
+                "box": inst_box,
+                "centroid": inst_centroid,
+                "contour": inst_contour,
+            }
+
+        return inst_info_dict
+
+            
+
 
     
     @staticmethod
@@ -403,31 +470,32 @@ class NuClick(ModelABC):
 
         Args:
             preds (ndarray): list of prediction output of each patch and
-                assumed to be in the order of [pn, c, h, w] (match with the output
+                assumed to be in the order of (no.patch, h, w) (match with the output
                 of `infer_batch`).
             thresh (float): Threshold value. If a pixel has a predicted value larger than the threshold, it will be classified as nuclei.
             minSize (int): The smallest allowable object size.
             minHole (int):  The maximum area, in pixels, of a contiguous hole that will be filled.
             doReconstruction (bool): Whether to perform a morphological reconstruction of an image.
-            nucPoints (ndarray): In the order of [pn, 1, h, w]. 
+            nucPoints (ndarray): In the order of (no.patch, h, w). 
                 In each patch, The pixel that has been 'clicked' is set to 1 and the rest pixels are set to 0.
 
         Returns:
             masks (ndarray): pixel-wise nuclei instance segmentation
-                prediction.
+                prediction, shape:(no.patch, h, w).
         """
         masks = preds > thresh
         masks = remove_small_objects(masks, min_size=minSize)
         masks = remove_small_holes(masks, area_threshold=minHole)
         if doReconstruction:
             for i in range(len(masks)):
-                thisMask = masks[i]
-                thisMarker = nucPoints[i, 0, :, :] > 0
+                thisMask = masks[i, :, :]
+                thisMarker = nucPoints[i, :, :] > 0
                 
                 try:
-                    thisMask = reconstruction(thisMarker, thisMask, footprint=disk(1))
+                    thisMask = reconstruction(thisMarker, thisMask, selem=disk(1))
                     masks[i] = np.array([thisMask])
-                except:
+                except Exception as e:
+                    print(e)
                     warnings.warn('Nuclei reconstruction error #' + str(i))
         return masks   
 
@@ -446,7 +514,7 @@ class NuClick(ModelABC):
             on_gpu (bool): Whether to run inference on a GPU.
 
         Returns:
-            Pixel-wise nuclei prediction for each patch.
+            Pixel-wise nuclei prediction for each patch, shape: (no.patch, h, w).
 
         """
         model.eval()
