@@ -106,7 +106,7 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
         br = location + np.array(self.patch_size)
         bounds = np.concatenate([tl, br])
 
-        return  bounds
+        return  bounds.astype(int)
 
     def get_exclusion_map(self, idx, bounding_box):
         """This function returns an exclusion map for click at the given index.
@@ -119,8 +119,8 @@ class InteractiveSegmentorDataset(abc.PatchDatasetABC):
             exclusionMap (ndarray)
         """
         other_points = self.locations.drop(idx, axis = 0)
-        x_locations = other_points["x"].to_numpy()
-        y_locations = other_points["y"].to_numpy()
+        x_locations = other_points["x"].to_numpy().astype(int)
+        y_locations = other_points["y"].to_numpy().astype(int)
 
         xy_locations = np.stack((x_locations, y_locations), axis=1)
         sel = xy_locations[np.all((xy_locations>bounding_box[:2]) & (xy_locations<bounding_box[2:]), axis=1)]
