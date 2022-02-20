@@ -156,7 +156,7 @@ class InteractiveSegmentor:
 
             # Nuclick post-processing:
             batch_output_predictions = NuClick.postproc(
-                preds = batch_output_probabilities, thresh=0.33, minSize=10, 
+                preds = batch_output_probabilities, thresh=0.5, minSize=10, 
                 minHole=30, doReconstruction=True, nucPoints=nuc_points
             )
 
