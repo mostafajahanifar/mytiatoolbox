@@ -414,8 +414,6 @@ class NuClick(ModelABC):
                             box: number[],
                             centroids: number[],
                             contour: number[][],
-                            type: number,
-                            prob: number,
                     }
                     inst_info_dict = {[inst_uid: number] : inst_info}
 

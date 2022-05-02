@@ -343,4 +343,3 @@ class InteractiveSegmentor:
         output = file_dict if len(imgs) > 1 or save_output else output_inst_dict
 
         return output
-
